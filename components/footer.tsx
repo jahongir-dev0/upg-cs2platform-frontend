@@ -1,12 +1,8 @@
+'use client'
+
 import Link from 'next/link'
 import { Logo } from './ui-bits'
-
-const SOCIALS = [
-  { name: 'Discord', href: '#' },
-  { name: 'Telegram', href: '#' },
-  { name: 'YouTube', href: '#' },
-  { name: 'Steam', href: '#' },
-]
+import { useSiteSettings } from './providers'
 
 const NAV_LINKS = [
   { label: 'Serverlar', href: '/servers' },
@@ -17,6 +13,15 @@ const NAV_LINKS = [
 ]
 
 export function Footer() {
+  const { settings } = useSiteSettings()
+
+  const socials = [
+    settings?.discord_url ? { name: 'Discord', href: settings.discord_url } : null,
+    settings?.telegram_url ? { name: 'Telegram', href: settings.telegram_url } : null,
+    settings?.youtube_url ? { name: 'YouTube', href: settings.youtube_url } : null,
+    settings?.steam_group_url ? { name: 'Steam', href: settings.steam_group_url } : null,
+  ].filter(Boolean) as { name: string; href: string }[]
+
   return (
     <footer
       className="mt-16 border-t"
@@ -29,20 +34,24 @@ export function Footer() {
         <div className="flex flex-col gap-4">
           <Logo size="md" />
           <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-            O&apos;zbekistonning eng yaxshi CS2 platformasi. Serverlar, rejimlar va
-            minimal ping bilan o&apos;yinlar.
+            {settings?.site_description ||
+              "O'zbekistonning eng yaxshi CS2 platformasi."}
           </p>
-          <div className="flex flex-wrap gap-2">
-            {SOCIALS.map((s) => (
-              <a
-                key={s.name}
-                href={s.href}
-                className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-              >
-                {s.name}
-              </a>
-            ))}
-          </div>
+          {socials.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {socials.map((s) => (
+                <a
+                  key={s.name}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md border border-border-subtle px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                >
+                  {s.name}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-3">
@@ -64,10 +73,14 @@ export function Footer() {
           <h3 className="font-heading text-sm font-bold uppercase tracking-wide text-foreground">
             Aloqa
           </h3>
-          <p className="text-sm text-muted-foreground">support@upg.uz</p>
-          <p className="text-sm text-muted-foreground">Toshkent, O&apos;zbekiston</p>
+          <p className="text-sm text-muted-foreground">
+            {settings?.support_email || 'support@upg.uz'}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {settings?.address || "Toshkent, O'zbekiston"}
+          </p>
           <p className="mt-4 text-xs text-muted-foreground/70">
-            © 2025 UPG. Barcha huquqlar himoyalangan.
+            © {new Date().getFullYear()} {settings?.site_name || 'UPG'}. Barcha huquqlar himoyalangan.
           </p>
         </div>
       </div>

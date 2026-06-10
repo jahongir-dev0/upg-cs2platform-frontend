@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { LayoutGrid, List, RefreshCw, Search } from 'lucide-react'
+import { LayoutGrid, List, RefreshCw, Search, AlertCircle } from 'lucide-react'
 import type { GameServer, ServerCategory } from '@/lib/types'
 import { api } from '@/lib/api'
 import { ModeTabs } from './mode-tabs'
@@ -16,6 +16,7 @@ export function ServerBrowser({ showTabs = true }: { showTabs?: boolean }) {
   const [servers, setServers] = useState<GameServer[]>([])
   const [categories, setCategories] = useState<ServerCategory[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [activeCategory, setActiveCategory] = useState('all')
   const [search, setSearch] = useState('')
@@ -23,13 +24,19 @@ export function ServerBrowser({ showTabs = true }: { showTabs?: boolean }) {
 
   async function load() {
     setLoading(true)
-    const [serverData, catData] = await Promise.all([
-      api.getServers(),
-      api.getServerCategories(),
-    ])
-    setServers(serverData)
-    setCategories(catData)
-    setLoading(false)
+    setError(null)
+    try {
+      const [serverData, catData] = await Promise.all([
+        api.getServers(),
+        api.getServerCategories(),
+      ])
+      setServers(serverData)
+      setCategories(catData)
+    } catch (e) {
+      setError("Serverlarni yuklashda xatolik yuz berdi. Backend ishlab turishini tekshiring.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -37,7 +44,7 @@ export function ServerBrowser({ showTabs = true }: { showTabs?: boolean }) {
   }, [])
 
   const tabs = useMemo(() => {
-    return categories.map((cat) => ({
+    return categories.map((cat: ServerCategory) => ({
       label: cat.name,
       count: cat.server_count,
     }))
@@ -60,9 +67,25 @@ export function ServerBrowser({ showTabs = true }: { showTabs?: boolean }) {
     })
   }, [servers, activeCategory, onlyOnline, search])
 
+  // Error state
+  if (error && !loading) {
+    return (
+      <section className="flex flex-col items-center gap-4 rounded-xl border border-destructive/30 bg-card py-16 text-center">
+        <AlertCircle className="h-12 w-12 text-destructive" />
+        <p className="text-foreground font-medium">{error}</p>
+        <button
+          onClick={load}
+          className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-shadow hover:glow-primary"
+        >
+          Qayta urinish
+        </button>
+      </section>
+    )
+  }
+
   return (
     <section className="flex flex-col gap-5">
-      {showTabs && (
+      {showTabs && tabs.length > 0 && (
         <ModeTabs tabs={tabs} active={activeCategory} onChange={setActiveCategory} />
       )}
 
@@ -127,23 +150,25 @@ export function ServerBrowser({ showTabs = true }: { showTabs?: boolean }) {
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 12 }).map((_, i) => (
+          {Array.from({ length: 8 }).map((_, i) => (
             <ServerSkeleton key={i} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border border-border-subtle bg-card py-16 text-center text-muted-foreground">
-          Serverlar topilmadi
+          {servers.length === 0
+            ? "Hali serverlar qo'shilmagan. Admin paneldan server qo'shing."
+            : "Qidiruv natijasida server topilmadi"}
         </div>
       ) : view === 'grid' ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((s) => (
+          {filtered.map((s: GameServer) => (
             <ServerCardGrid key={s.id} server={s} />
           ))}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {filtered.map((s) => (
+          {filtered.map((s: GameServer) => (
             <ServerRowList key={s.id} server={s} />
           ))}
         </div>

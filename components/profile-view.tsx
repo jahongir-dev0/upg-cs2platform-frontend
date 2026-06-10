@@ -7,30 +7,9 @@ import { SteamLoginButton } from './steam-login-button'
 import { api } from '@/lib/api'
 import type { Order } from '@/lib/types'
 import { OrdersTable } from './orders-table'
-import { cn } from '@/lib/utils'
 
-function Stat({
-  label,
-  value,
-  accent,
-}: {
-  label: string
-  value: string
-  accent?: boolean
-}) {
-  return (
-    <div className="rounded-lg border border-border-subtle bg-card px-4 py-3">
-      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p
-        className={cn(
-          'mt-1 font-heading text-xl font-bold',
-          accent ? 'text-primary' : 'text-foreground',
-        )}
-      >
-        {value}
-      </p>
-    </div>
-  )
+function formatPrice(n: number) {
+  return new Intl.NumberFormat('uz-UZ').format(n)
 }
 
 export function ProfileView() {
@@ -41,15 +20,11 @@ export function ProfileView() {
   useEffect(() => {
     if (!user) return
     let active = true
-    api.getOrders().then((data) => {
-      if (active) {
-        setOrders(data)
-        setLoading(false)
-      }
-    })
-    return () => {
-      active = false
-    }
+    api.getOrders()
+      .then((data) => { if (active) setOrders(data) })
+      .catch(() => {})
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
   }, [user])
 
   if (!user) {
@@ -94,8 +69,7 @@ export function ProfileView() {
               )}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              {user.email || 'Email ko\'rsatilmagan'} · Ro&apos;yxatdan o&apos;tgan:{' '}
-              {new Date(user.created_at).toLocaleDateString('uz-UZ')}
+              Ro&apos;yxatdan o&apos;tgan: {new Date(user.created_at).toLocaleDateString('uz-UZ')}
             </p>
             <div className="mt-1 flex items-center justify-center gap-3 sm:justify-start">
               <p className="font-mono text-xs text-muted-foreground">
@@ -116,7 +90,7 @@ export function ProfileView() {
           <div className="rounded-lg border border-border-subtle bg-surface px-5 py-3 text-center">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Balans</p>
             <p className="font-heading text-2xl font-bold text-primary">
-              {user.balance.toLocaleString('uz-UZ')} UZS
+              {formatPrice(user.balance)} UZS
             </p>
           </div>
         </div>

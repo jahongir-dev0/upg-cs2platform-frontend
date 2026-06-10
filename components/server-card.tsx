@@ -1,9 +1,11 @@
 'use client'
 
-import { Copy, Crown, Lock, Play } from 'lucide-react'
+import { useState } from 'react'
+import { Copy, Crown, Play, ShoppingCart } from 'lucide-react'
 import type { GameServer } from '@/lib/types'
 import { PlayerBar, StatusDot } from './ui-bits'
-import { useToast } from './providers'
+import { useAuth, useToast } from './providers'
+import { OrderModal } from './order-modal'
 import { cn } from '@/lib/utils'
 
 function getMapImage(mapName: string): string {
@@ -22,117 +24,163 @@ function copyConnect(server: GameServer, toast: (m: string, t?: any) => void) {
 }
 
 export function ServerCardGrid({ server }: { server: GameServer }) {
+  const { user } = useAuth()
   const { toast } = useToast()
+  const [showOrder, setShowOrder] = useState(false)
+
   return (
-    <div
-      className={cn(
-        'group relative overflow-hidden rounded-lg border bg-card transition-all hover:bg-card-hover hover:glow-primary-soft',
-        server.is_premium ? 'border-l-2' : 'border-border',
-      )}
-      style={server.is_premium ? { borderLeftColor: 'var(--gold)' } : undefined}
-    >
-      <div className="relative h-28 w-full overflow-hidden">
-        <img
-          src={getMapImage(server.map_name)}
-          alt={`${server.map_name} xaritasi`}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
-        <div className="absolute right-2 top-2 flex gap-1.5">
-          {server.is_premium && (
-            <span
-              className="flex h-6 w-6 items-center justify-center rounded bg-black/50"
-              title="Premium"
+    <>
+      <div
+        className={cn(
+          'group relative overflow-hidden rounded-lg border bg-card transition-all hover:bg-card-hover hover:glow-primary-soft',
+          server.is_premium ? 'border-l-2' : 'border-border',
+        )}
+        style={server.is_premium ? { borderLeftColor: 'var(--gold)' } : undefined}
+      >
+        <div className="relative h-28 w-full overflow-hidden">
+          <img
+            src={getMapImage(server.map_name)}
+            alt={`${server.map_name} xaritasi`}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+          <div className="absolute right-2 top-2 flex gap-1.5">
+            {server.is_premium && (
+              <span
+                className="flex h-6 w-6 items-center justify-center rounded bg-black/50"
+                title="Premium"
+              >
+                <Crown className="h-3.5 w-3.5" style={{ color: 'var(--gold)' }} />
+              </span>
+            )}
+            <button
+              onClick={() => copyConnect(server, toast)}
+              aria-label="IP nusxalash"
+              className="flex h-6 w-6 items-center justify-center rounded bg-black/50 text-muted-foreground transition-colors hover:text-foreground"
             >
-              <Crown className="h-3.5 w-3.5" style={{ color: 'var(--gold)' }} />
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2.5 p-3">
+          <div className="flex items-center gap-2">
+            <StatusDot online={server.status === 'online'} />
+            <span className="font-heading text-sm font-bold tracking-wide">
+              {server.name}
             </span>
-          )}
-          <button
-            onClick={() => copyConnect(server, toast)}
-            aria-label="IP nusxalash"
-            className="flex h-6 w-6 items-center justify-center rounded bg-black/50 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <Copy className="h-3.5 w-3.5" />
-          </button>
+          </div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {server.current_players}/{server.max_players} — {server.map_name}
+            </span>
+            <span>{server.category?.icon} {server.category?.name}</span>
+          </div>
+          <PlayerBar current={server.current_players} max={server.max_players} />
+
+          <div className="mt-1 flex gap-2 opacity-0 transition-all group-hover:opacity-100">
+            <a
+              href={server.connect_url}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-surface px-3 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-primary hover:text-primary-foreground"
+            >
+              <Play className="h-3.5 w-3.5" />
+              Ulanish
+            </a>
+            {server.price_per_hour > 0 && user && (
+              <button
+                onClick={() => setShowOrder(true)}
+                className="flex items-center justify-center gap-1.5 rounded-md bg-surface px-3 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-primary hover:text-primary-foreground"
+              >
+                <ShoppingCart className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5 p-3">
-        <div className="flex items-center gap-2">
-          <StatusDot online={server.status === 'online'} />
-          <span className="font-heading text-sm font-bold tracking-wide">
-            {server.name}
-          </span>
-        </div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            {server.current_players}/{server.max_players} — {server.map_name}
-          </span>
-          <span>{server.category?.icon} {server.category?.name}</span>
-        </div>
-        <PlayerBar current={server.current_players} max={server.max_players} />
-        <a
-          href={server.connect_url}
-          className="mt-1 flex items-center justify-center gap-1.5 rounded-md bg-surface px-3 py-2 text-xs font-semibold uppercase tracking-wide text-foreground opacity-0 transition-all group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground"
-        >
-          <Play className="h-3.5 w-3.5" />
-          Ulanish
-        </a>
-      </div>
-    </div>
+      {showOrder && (
+        <OrderModal
+          server={server}
+          onClose={() => setShowOrder(false)}
+          onSuccess={() => {}}
+        />
+      )}
+    </>
   )
 }
 
 export function ServerRowList({ server }: { server: GameServer }) {
+  const { user } = useAuth()
   const { toast } = useToast()
+  const [showOrder, setShowOrder] = useState(false)
+
   return (
-    <div
-      className={cn(
-        'flex items-center gap-4 rounded-lg border bg-card px-4 py-3 transition-colors hover:bg-card-hover',
-        server.is_premium ? 'border-l-2' : 'border-border',
-      )}
-      style={server.is_premium ? { borderLeftColor: 'var(--gold)' } : undefined}
-    >
-      <StatusDot online={server.status === 'online'} />
-      <div className="flex min-w-0 items-center gap-2">
-        {server.is_premium && (
-          <Crown className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--gold)' }} />
+    <>
+      <div
+        className={cn(
+          'flex items-center gap-4 rounded-lg border bg-card px-4 py-3 transition-colors hover:bg-card-hover',
+          server.is_premium ? 'border-l-2' : 'border-border',
         )}
-        <span className="font-heading text-sm font-bold tracking-wide">
-          {server.name}
+        style={server.is_premium ? { borderLeftColor: 'var(--gold)' } : undefined}
+      >
+        <StatusDot online={server.status === 'online'} />
+        <div className="flex min-w-0 items-center gap-2">
+          {server.is_premium && (
+            <Crown className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--gold)' }} />
+          )}
+          <span className="font-heading text-sm font-bold tracking-wide">
+            {server.name}
+          </span>
+        </div>
+        <span className="hidden w-28 shrink-0 text-xs text-muted-foreground sm:block">
+          {server.map_name}
         </span>
-      </div>
-      <span className="hidden w-28 shrink-0 text-xs text-muted-foreground sm:block">
-        {server.map_name}
-      </span>
-      <div className="hidden w-24 shrink-0 items-center gap-2 md:flex">
-        <span className="w-10 text-right text-xs text-muted-foreground">
-          {server.current_players}/{server.max_players}
+        <div className="hidden w-24 shrink-0 items-center gap-2 md:flex">
+          <span className="w-10 text-right text-xs text-muted-foreground">
+            {server.current_players}/{server.max_players}
+          </span>
+          <PlayerBar current={server.current_players} max={server.max_players} />
+        </div>
+        <span className="hidden flex-1 truncate font-mono text-xs text-muted-foreground lg:block">
+          {server.ip_address}:{server.port}
         </span>
-        <PlayerBar current={server.current_players} max={server.max_players} />
+        <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
+          {server.category?.icon} {server.category?.name}
+        </span>
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          <a
+            href={server.connect_url}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase text-primary-foreground transition-shadow hover:glow-primary"
+          >
+            Ulanish
+          </a>
+          {server.price_per_hour > 0 && user && (
+            <button
+              onClick={() => setShowOrder(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface hover:text-primary"
+              title="Ijaraga olish"
+            >
+              <ShoppingCart className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            onClick={() => copyConnect(server, toast)}
+            aria-label="IP nusxalash"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
+        </div>
       </div>
-      <span className="hidden flex-1 truncate font-mono text-xs text-muted-foreground lg:block">
-        {server.ip_address}:{server.port}
-      </span>
-      <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
-        {server.category?.icon} {server.category?.name}
-      </span>
-      <div className="ml-auto flex shrink-0 items-center gap-1.5">
-        <a
-          href={server.connect_url}
-          className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase text-primary-foreground transition-shadow hover:glow-primary"
-        >
-          Ulanish
-        </a>
-        <button
-          onClick={() => copyConnect(server, toast)}
-          aria-label="IP nusxalash"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
-        >
-          <Copy className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
+
+      {showOrder && (
+        <OrderModal
+          server={server}
+          onClose={() => setShowOrder(false)}
+          onSuccess={() => {}}
+        />
+      )}
+    </>
   )
 }
 
