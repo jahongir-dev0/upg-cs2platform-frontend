@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Crown } from 'lucide-react'
+import { Crown, AlertCircle } from 'lucide-react'
 import type { LeaderboardEntry } from '@/lib/types'
 import { api } from '@/lib/api'
 import { useAuth } from './providers'
@@ -19,21 +19,40 @@ export function LeaderboardTable() {
   const { user } = useAuth()
   const [rows, setRows] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState(PERIODS[3])
 
   useEffect(() => {
     let active = true
     setLoading(true)
-    api.getLeaderboard().then((data) => {
-      if (active) {
-        setRows(data)
-        setLoading(false)
-      }
-    })
-    return () => {
-      active = false
-    }
+    setError(null)
+    api.getLeaderboard()
+      .then((data) => {
+        if (active) setRows(data)
+      })
+      .catch(() => {
+        if (active) setError("Liderlar jadvalini yuklashda xatolik yuz berdi.")
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
   }, [])
+
+  if (error && !loading) {
+    return (
+      <div className="flex flex-col items-center gap-4 rounded-xl border border-destructive/30 bg-card py-16 text-center">
+        <AlertCircle className="h-12 w-12 text-destructive" />
+        <p className="text-foreground font-medium">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+        >
+          Qayta urinish
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -70,14 +89,20 @@ export function LeaderboardTable() {
             </thead>
             <tbody>
               {loading
-                ? Array.from({ length: 12 }).map((_, i) => (
+                ? Array.from({ length: 10 }).map((_, i) => (
                     <tr key={i} className="border-b border-border-subtle">
                       <td colSpan={7} className="px-4 py-3">
                         <div className="animate-skeleton h-5 w-full rounded bg-surface" />
                       </td>
                     </tr>
                   ))
-                : rows.map((row, index) => {
+                : rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
+                      Liderlar jadvali bo&apos;sh. O&apos;yinchilar serverda o&apos;ynaganda ma&apos;lumotlar paydo bo&apos;ladi.
+                    </td>
+                  </tr>
+                ) : rows.map((row: LeaderboardEntry, index: number) => {
                     const rank = index + 1
                     const isOwn = user?.username === row.username
                     return (
@@ -99,9 +124,7 @@ export function LeaderboardTable() {
                             <span
                               className={cn(
                                 'font-mono',
-                                rank <= 3
-                                  ? 'font-bold'
-                                  : 'text-muted-foreground',
+                                rank <= 3 ? 'font-bold' : 'text-muted-foreground',
                               )}
                             >
                               {rank}
@@ -137,7 +160,7 @@ export function LeaderboardTable() {
                           {row.kills.toLocaleString('uz-UZ')}
                         </td>
                         <td className="px-4 py-3 text-right text-muted-foreground">
-                          {Math.round(row.play_time_hours)}s
+                          {Math.round(row.play_time_hours)} soat
                         </td>
                       </tr>
                     )

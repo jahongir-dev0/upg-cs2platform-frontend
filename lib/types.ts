@@ -1,18 +1,25 @@
-/* ─── Server ─────────────────────────────────────────────────────────────── */
+/* ─── Site Settings ───────────────────────────────────────────────────────── */
 
-export type ServerMode =
-  | '5X5'
-  | 'DM'
-  | 'RETAKE'
-  | 'BHOP'
-  | 'SURF'
-  | 'KZ'
-  | 'AWP'
-  | '2X2'
-  | 'PISTOL'
-  | 'ARENA'
-  | 'HNS'
-  | 'DEATHRUN'
+export interface SiteSettings {
+  site_name: string
+  site_description: string
+  site_tagline: string
+  hero_title: string
+  hero_subtitle: string
+  hero_cta_text: string
+  display_ping: number
+  display_player_count: number
+  display_modes_count: number
+  discord_url: string | null
+  telegram_url: string | null
+  youtube_url: string | null
+  steam_group_url: string | null
+  support_email: string
+  support_telegram: string
+  address: string
+}
+
+/* ─── Server ─────────────────────────────────────────────────────────────── */
 
 export interface ServerCategory {
   id: number
@@ -96,6 +103,54 @@ export interface Order {
   expires_at: string | null
   created_at: string
   is_expired: boolean
+}
+
+/* ─── Shop ───────────────────────────────────────────────────────────────── */
+
+export interface ProductCategory {
+  id: number
+  name: string
+  slug: string
+  icon: string
+  product_count: number
+}
+
+export interface Product {
+  id: number
+  name: string
+  slug: string
+  description: string
+  short_description: string
+  category: ProductCategory | null
+  product_type: 'subscription' | 'server_rental' | 'balance' | 'skin' | 'other'
+  price: number
+  original_price: number | null
+  duration: string
+  features: string[]
+  image: string | null
+  is_popular: boolean
+  discount_percentage: number
+  created_at: string
+}
+
+export interface Purchase {
+  id: number
+  product: Product
+  status: string
+  status_display: string
+  amount: number
+  created_at: string
+  completed_at: string | null
+}
+
+/* ─── Help ───────────────────────────────────────────────────────────────── */
+
+export interface FAQItem {
+  id: number
+  question: string
+  answer: string
+  icon: string
+  order: number
 }
 
 /* ─── Auth ───────────────────────────────────────────────────────────────── */

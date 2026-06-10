@@ -1,35 +1,37 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { HelpCircle, Server, CreditCard, Shield, MessageCircle, Gamepad2, Trophy, Users, AlertCircle } from 'lucide-react'
 import { SiteShell } from '@/components/site-shell'
 import { SectionHeading } from '@/components/ui-bits'
-import { HelpCircle, MessageCircle, Server, CreditCard, Shield } from 'lucide-react'
+import { useSiteSettings } from '@/components/providers'
+import { api } from '@/lib/api'
+import type { FAQItem } from '@/lib/types'
 
-const FAQ = [
-  {
-    icon: Server,
-    question: "Serverga qanday ulanaman?",
-    answer:
-      "Server kartochkasidagi \"Ulanish\" tugmasini bosing yoki IP manzilni nusxalab CS2 konsoliga \"connect IP\" yozing.",
-  },
-  {
-    icon: CreditCard,
-    question: "Server ijarasi qanday ishlaydi?",
-    answer:
-      "Serverlar sahifasida kerakli serverni tanlang, soat miqdorini belgilang va buyurtma bering. Balans yetarli bo'lsa, server darhol faollashadi.",
-  },
-  {
-    icon: Shield,
-    question: "Premium obuna nima beradi?",
-    answer:
-      "Premium foydalanuvchilar maxsus serverlarga kirish, ustuvor navbat, va eksklyuziv rejimlardan foydalanish imkoniyatiga ega.",
-  },
-  {
-    icon: MessageCircle,
-    question: "Qo'llab-quvvatlash xizmatiga qanday murojaat qilaman?",
-    answer:
-      "Telegram guruhimiz orqali yoki support@upg.uz elektron pochta manziliga yozing. Biz 24 soat ichida javob beramiz.",
-  },
-]
+const ICON_MAP: Record<string, typeof Server> = {
+  server: Server,
+  credit_card: CreditCard,
+  shield: Shield,
+  message: MessageCircle,
+  help: HelpCircle,
+  gamepad: Gamepad2,
+  trophy: Trophy,
+  users: Users,
+}
 
 export default function HelpPage() {
+  const { settings } = useSiteSettings()
+  const [faqs, setFaqs] = useState<FAQItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.getFAQ()
+      .then(setFaqs)
+      .catch(() => setError("FAQ ma'lumotlarini yuklashda xatolik yuz berdi."))
+      .finally(() => setLoading(false))
+  }, [])
+
   return (
     <SiteShell>
       <div className="mx-auto max-w-7xl px-4 py-10">
@@ -40,27 +42,48 @@ export default function HelpPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {FAQ.map((item) => (
-            <div
-              key={item.question}
-              className="rounded-xl border border-border-subtle bg-card p-6 transition-colors hover:border-primary/30"
-            >
-              <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <item.icon className="h-5 w-5 text-primary" />
+        {loading ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="animate-skeleton h-40 rounded-xl bg-surface" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-destructive/30 bg-card py-16 text-center">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+            <p className="text-foreground font-medium">{error}</p>
+          </div>
+        ) : faqs.length === 0 ? (
+          <div className="rounded-xl border border-border-subtle bg-card py-16 text-center text-muted-foreground">
+            Hali FAQ savollar qo&apos;shilmagan. Admin paneldan qo&apos;shing.
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {faqs.map((item: FAQItem) => {
+              const Icon = ICON_MAP[item.icon] || HelpCircle
+              return (
+                <div
+                  key={item.id}
+                  className="rounded-xl border border-border-subtle bg-card p-6 transition-colors hover:border-primary/30"
+                >
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <h3 className="font-heading text-base font-bold text-foreground">
+                      {item.question}
+                    </h3>
+                  </div>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {item.answer}
+                  </p>
                 </div>
-                <h3 className="font-heading text-base font-bold text-foreground">
-                  {item.question}
-                </h3>
-              </div>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {item.answer}
-              </p>
-            </div>
-          ))}
-        </div>
+              )
+            })}
+          </div>
+        )}
 
+        {/* Contact section */}
         <div className="mt-10 rounded-xl border border-border bg-card p-8 text-center">
           <HelpCircle className="mx-auto h-10 w-10 text-primary" />
           <h2 className="mt-4 font-heading text-xl font-bold text-foreground">
@@ -71,7 +94,7 @@ export default function HelpPage() {
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a
-              href="https://t.me/upg_support"
+              href={settings?.telegram_url || 'https://t.me/upg_support'}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold uppercase text-primary-foreground transition-shadow hover:glow-primary"
@@ -79,7 +102,7 @@ export default function HelpPage() {
               Telegram orqali yozish
             </a>
             <a
-              href="mailto:support@upg.uz"
+              href={`mailto:${settings?.support_email || 'support@upg.uz'}`}
               className="rounded-lg border border-primary/50 px-6 py-3 text-sm font-semibold uppercase text-primary transition-colors hover:bg-primary/10"
             >
               Email yuborish

@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
-import type { User } from '@/lib/types'
+import type { SiteSettings, User } from '@/lib/types'
 import { api, tokenStore } from '@/lib/api'
 
 /* ─── Toasts ─────────────────────────────────────────────────────────────── */
@@ -69,6 +69,7 @@ interface AuthContextValue {
   steamLogin: () => void
   logout: () => void
   setUser: (user: User | null) => void
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -79,12 +80,29 @@ export function useAuth() {
   return ctx
 }
 
+/* ─── Site Settings Context ──────────────────────────────────────────────── */
+
+interface SiteContextValue {
+  settings: SiteSettings | null
+  settingsLoading: boolean
+}
+
+const SiteContext = createContext<SiteContextValue | null>(null)
+
+export function useSiteSettings() {
+  const ctx = useContext(SiteContext)
+  if (!ctx) throw new Error('useSiteSettings must be used within AppProviders')
+  return ctx
+}
+
 /* ─── Combined Provider ──────────────────────────────────────────────────── */
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [settings, setSettings] = useState<SiteSettings | null>(null)
+  const [settingsLoading, setSettingsLoading] = useState(true)
 
   const toast = useCallback((message: string, type: ToastType = 'info') => {
     const id = Date.now() + Math.random()
@@ -94,7 +112,23 @@ export function AppProviders({ children }: { children: ReactNode }) {
     }, 3500)
   }, [])
 
-  // Initialize: check if user has valid token
+  // Load site settings
+  useEffect(() => {
+    let active = true
+    api.getSiteSettings()
+      .then((data) => {
+        if (active) setSettings(data)
+      })
+      .catch(() => {
+        // Settings yuklanmadi — default qiymatlar ishlatiladi
+      })
+      .finally(() => {
+        if (active) setSettingsLoading(false)
+      })
+    return () => { active = false }
+  }, [])
+
+  // Initialize auth
   useEffect(() => {
     let active = true
     async function init() {
@@ -109,13 +143,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
       if (active) setLoading(false)
     }
     init()
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [])
 
   const steamLogin = useCallback(() => {
-    // Steam OpenID ga redirect qiladi
     window.location.href = api.getSteamLoginUrl()
   }, [])
 
@@ -125,12 +156,23 @@ export function AppProviders({ children }: { children: ReactNode }) {
     toast("Hisobdan muvaffaqiyatli chiqdingiz", 'info')
   }, [toast])
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const profile = await api.getMe()
+      setUser(profile)
+    } catch {
+      // silent fail
+    }
+  }, [])
+
   return (
     <ToastContext.Provider value={{ toast }}>
-      <AuthContext.Provider value={{ user, loading, steamLogin, logout, setUser }}>
-        {children}
-        <ToastViewport toasts={toasts} />
-      </AuthContext.Provider>
+      <SiteContext.Provider value={{ settings, settingsLoading }}>
+        <AuthContext.Provider value={{ user, loading, steamLogin, logout, setUser, refreshUser }}>
+          {children}
+          <ToastViewport toasts={toasts} />
+        </AuthContext.Provider>
+      </SiteContext.Provider>
     </ToastContext.Provider>
   )
 }

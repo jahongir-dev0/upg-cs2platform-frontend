@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { AlertCircle } from 'lucide-react'
 import type { Order } from '@/lib/types'
 import { api } from '@/lib/api'
-import { cn } from '@/lib/utils'
+import { useAuth } from './providers'
+import { SteamLoginButton } from './steam-login-button'
 
 function formatPrice(n: number) {
   return new Intl.NumberFormat('uz-UZ').format(n)
@@ -37,26 +39,52 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders: ordersProp, loading: loadingProp }: OrdersTableProps) {
+  const { user } = useAuth()
   const controlled = ordersProp !== undefined
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (controlled) return
+    if (controlled || !user) return
     let active = true
-    api.getOrders().then((data) => {
-      if (active) {
-        setOrders(data)
-        setLoading(false)
-      }
-    })
-    return () => {
-      active = false
-    }
-  }, [controlled])
+    setError(null)
+    api.getOrders()
+      .then((data) => {
+        if (active) setOrders(data)
+      })
+      .catch(() => {
+        if (active) setError("Buyurtmalarni yuklashda xatolik yuz berdi.")
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
+  }, [controlled, user])
+
+  // Not logged in
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center gap-4 rounded-lg border border-border-subtle bg-card py-12 text-center">
+        <p className="text-muted-foreground">
+          Buyurtmalaringizni ko&apos;rish uchun tizimga kiring
+        </p>
+        <SteamLoginButton size="md" />
+      </div>
+    )
+  }
 
   const rows = controlled ? ordersProp! : orders
   const isLoading = controlled ? !!loadingProp : loading
+
+  if (error && !isLoading) {
+    return (
+      <div className="flex flex-col items-center gap-4 rounded-xl border border-destructive/30 bg-card py-12 text-center">
+        <AlertCircle className="h-10 w-10 text-destructive" />
+        <p className="text-foreground">{error}</p>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -90,7 +118,7 @@ export function OrdersTable({ orders: ordersProp, loading: loadingProp }: Orders
             </tr>
           </thead>
           <tbody>
-            {rows.map((o) => {
+            {rows.map((o: Order) => {
               const colors = STATUS_COLORS[o.status] || STATUS_COLORS.expired
               return (
                 <tr
@@ -98,7 +126,7 @@ export function OrdersTable({ orders: ordersProp, loading: loadingProp }: Orders
                   className="border-b border-border-subtle transition-colors last:border-0 hover:bg-primary/5"
                 >
                   <td className="px-4 py-3 font-medium text-foreground">
-                    {o.server.name}
+                    {o.server?.name || 'Server'}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{o.hours} soat</td>
                   <td className="px-4 py-3 text-right text-foreground">

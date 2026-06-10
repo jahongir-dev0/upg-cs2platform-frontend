@@ -2,14 +2,18 @@
 
 import type {
   AuthTokens,
+  FAQItem,
   GameServer,
   LeaderboardEntry,
   Order,
+  Product,
+  ProductCategory,
+  Purchase,
   ServerCategory,
   ServerStats,
+  SiteSettings,
   User,
 } from './types'
-import { MOCK_LEADERBOARD, MOCK_ORDERS, MOCK_SERVERS, MOCK_USER } from './mock-data'
 
 /* ─── Config ─────────────────────────────────────────────────────────────── */
 
@@ -17,7 +21,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const API = `${API_BASE}/api`
 const ACCESS_KEY = 'upg_access'
 const REFRESH_KEY = 'upg_refresh'
-const TIMEOUT = 5000
+const TIMEOUT = 8000
 
 /* ─── Token Store ────────────────────────────────────────────────────────── */
 
@@ -37,6 +41,18 @@ export const tokenStore = {
 }
 
 /* ─── HTTP helper ────────────────────────────────────────────────────────── */
+
+class ApiError extends Error {
+  status: number
+  data: Record<string, unknown> | null
+
+  constructor(message: string, status: number, data: Record<string, unknown> | null = null) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.data = data
+  }
+}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const controller = new AbortController()
@@ -59,7 +75,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     if (res.status === 401 && tokenStore.getRefresh()) {
       const refreshed = await refreshToken()
       if (refreshed) {
-        // Retry with new token
         const retryRes = await fetch(`${API}${path}`, {
           ...options,
           credentials: 'include',
@@ -69,14 +84,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
             ...options.headers,
           },
         })
-        if (!retryRes.ok) throw new Error(`HTTP ${retryRes.status}`)
+        if (!retryRes.ok) {
+          const errData = await retryRes.json().catch(() => null)
+          throw new ApiError(`HTTP ${retryRes.status}`, retryRes.status, errData)
+        }
         return (await retryRes.json()) as T
       }
       tokenStore.clear()
-      throw new Error('Session expired')
+      throw new ApiError('Session expired', 401)
     }
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.ok) {
+      const errData = await res.json().catch(() => null)
+      throw new ApiError(`HTTP ${res.status}`, res.status, errData)
+    }
     return (await res.json()) as T
   } finally {
     clearTimeout(timer)
@@ -99,74 +120,52 @@ async function refreshToken(): Promise<boolean> {
   }
 }
 
-/* ─── Mock delay helper ──────────────────────────────────────────────────── */
+/* ─── Paginated response helper ──────────────────────────────────────────── */
 
-function delay<T>(value: T, ms = 400): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), ms))
+function extractResults<T>(data: { results?: T[] } | T[]): T[] {
+  return Array.isArray(data) ? data : (data.results || [])
 }
 
 /* ─── API Interface ──────────────────────────────────────────────────────── */
 
-export interface ServerFilters {
-  category?: string
-  status?: string
-  search?: string
-  is_premium?: boolean
-  ordering?: string
-}
-
 export const api = {
+  /* ── Site Settings ── */
+
+  async getSiteSettings(): Promise<SiteSettings> {
+    return request<SiteSettings>('/site/settings/')
+  },
+
+  async getFAQ(): Promise<FAQItem[]> {
+    const data = await request<{ results?: FAQItem[] } | FAQItem[]>('/site/faq/')
+    return extractResults(data)
+  },
+
   /* ── Steam Auth ── */
 
-  /**
-   * Steam orqali login qilish uchun backend URL ni qaytaradi.
-   * Frontend bu URL ga redirect qiladi.
-   */
   getSteamLoginUrl(): string {
     return `${API_BASE}/auth/login/steam/`
   },
 
-  /**
-   * Steam callback muvaffaqiyatli bo'lgandan keyin
-   * session'dan JWT token oladi.
-   */
   async exchangeSteamToken(): Promise<AuthTokens> {
     const res = await fetch(`${API}/auth/steam/token/`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
     })
-    if (!res.ok) throw new Error(`Steam token exchange failed: ${res.status}`)
+    if (!res.ok) throw new ApiError(`Steam token exchange failed`, res.status)
     const data: AuthTokens = await res.json()
     tokenStore.set(data.access, data.refresh)
     return data
   },
 
-  /**
-   * Joriy foydalanuvchi ma'lumotlarini oladi.
-   */
   async getMe(): Promise<User> {
-    try {
-      return await request<User>('/auth/me/')
-    } catch {
-      return delay(MOCK_USER)
-    }
+    return request<User>('/auth/me/')
   },
 
-  /**
-   * Profil ma'lumotlarini oladi.
-   */
   async getProfile(): Promise<User> {
-    try {
-      return await request<User>('/auth/profile/')
-    } catch {
-      return delay(MOCK_USER)
-    }
+    return request<User>('/auth/profile/')
   },
 
-  /**
-   * Profil ma'lumotlarini yangilaydi (faqat username).
-   */
   async updateProfile(data: Partial<User>): Promise<User> {
     return request<User>('/auth/profile/', {
       method: 'PATCH',
@@ -174,9 +173,6 @@ export const api = {
     })
   },
 
-  /**
-   * Logout — refresh token blacklist qilinadi.
-   */
   async logout(): Promise<void> {
     const refresh = tokenStore.getRefresh()
     if (refresh) {
@@ -186,7 +182,7 @@ export const api = {
           body: JSON.stringify({ refresh }),
         })
       } catch {
-        // Token allaqachon yaroqsiz bo'lishi mumkin
+        // Token allaqachon yaroqsiz
       }
     }
     tokenStore.clear()
@@ -194,22 +190,16 @@ export const api = {
 
   /* ── Servers ── */
 
-  async getServers(filters: ServerFilters = {}): Promise<GameServer[]> {
-    try {
-      const params = new URLSearchParams()
-      if (filters.category) params.set('category', filters.category)
-      if (filters.status && filters.status !== 'all') params.set('status', filters.status)
-      if (filters.search) params.set('search', filters.search)
-      if (filters.is_premium !== undefined) params.set('is_premium', String(filters.is_premium))
-      if (filters.ordering) params.set('ordering', filters.ordering)
-      const query = params.toString()
-      const url = `/servers/${query ? `?${query}` : ''}`
-      const data = await request<{ results?: GameServer[] } | GameServer[]>(url)
-      // DRF pagination yoki oddiy list
-      return Array.isArray(data) ? data : (data.results || [])
-    } catch {
-      return delay(MOCK_SERVERS)
-    }
+  async getServers(filters: Record<string, string> = {}): Promise<GameServer[]> {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v && v !== 'all') params.set(k, v)
+    })
+    const query = params.toString()
+    const data = await request<{ results?: GameServer[] } | GameServer[]>(
+      `/servers/${query ? `?${query}` : ''}`
+    )
+    return extractResults(data)
   },
 
   async getServerDetail(id: number): Promise<GameServer> {
@@ -217,58 +207,31 @@ export const api = {
   },
 
   async getServerCategories(): Promise<ServerCategory[]> {
-    try {
-      return await request<ServerCategory[]>('/servers/categories/')
-    } catch {
-      return delay([])
-    }
+    return request<ServerCategory[]>('/servers/categories/')
   },
 
   async getServerStats(): Promise<ServerStats> {
-    try {
-      return await request<ServerStats>('/servers/stats/')
-    } catch {
-      return delay({
-        total_servers: 24,
-        online_servers: 20,
-        offline_servers: 4,
-        total_players: 247,
-        max_capacity: 480,
-        fill_percentage: 51.5,
-      })
-    }
+    return request<ServerStats>('/servers/stats/')
   },
 
   /* ── Leaderboard ── */
 
   async getLeaderboard(): Promise<LeaderboardEntry[]> {
-    try {
-      const data = await request<{ results?: LeaderboardEntry[] } | LeaderboardEntry[]>(
-        '/leaderboard/',
-      )
-      return Array.isArray(data) ? data : (data.results || [])
-    } catch {
-      return delay(MOCK_LEADERBOARD)
-    }
+    const data = await request<{ results?: LeaderboardEntry[] } | LeaderboardEntry[]>(
+      '/leaderboard/'
+    )
+    return extractResults(data)
   },
 
   /* ── Orders ── */
 
   async getOrders(): Promise<Order[]> {
-    try {
-      const data = await request<{ results?: Order[] } | Order[]>('/orders/')
-      return Array.isArray(data) ? data : (data.results || [])
-    } catch {
-      return delay(MOCK_ORDERS)
-    }
+    const data = await request<{ results?: Order[] } | Order[]>('/orders/')
+    return extractResults(data)
   },
 
   async getActiveOrders(): Promise<Order[]> {
-    try {
-      return await request<Order[]>('/orders/active/')
-    } catch {
-      return delay([])
-    }
+    return request<Order[]>('/orders/active/')
   },
 
   async createOrder(serverId: number, hours: number): Promise<Order> {
@@ -282,5 +245,39 @@ export const api = {
     return request<{ detail: string }>(`/orders/${orderId}/cancel/`, {
       method: 'POST',
     })
+  },
+
+  /* ── Shop ── */
+
+  async getProducts(filters: Record<string, string> = {}): Promise<Product[]> {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v) params.set(k, v)
+    })
+    const query = params.toString()
+    const data = await request<{ results?: Product[] } | Product[]>(
+      `/shop/products/${query ? `?${query}` : ''}`
+    )
+    return extractResults(data)
+  },
+
+  async getProductDetail(slug: string): Promise<Product> {
+    return request<Product>(`/shop/products/${slug}/`)
+  },
+
+  async getShopCategories(): Promise<ProductCategory[]> {
+    return request<ProductCategory[]>('/shop/categories/')
+  },
+
+  async purchaseProduct(productId: number): Promise<Purchase> {
+    return request<Purchase>('/shop/purchase/', {
+      method: 'POST',
+      body: JSON.stringify({ product_id: productId }),
+    })
+  },
+
+  async getPurchaseHistory(): Promise<Purchase[]> {
+    const data = await request<{ results?: Purchase[] } | Purchase[]>('/shop/purchases/')
+    return extractResults(data)
   },
 }
