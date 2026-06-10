@@ -234,7 +234,8 @@ export const api = {
   },
 
   async getActiveOrders(): Promise<Order[]> {
-    return request<Order[]>('/orders/active/')
+    const data = await request<{ results?: Order[] } | Order[]>('/orders/active/')
+    return extractResults(data)
   },
 
   async createOrder(serverId: number, hours: number): Promise<Order> {
@@ -269,7 +270,10 @@ export const api = {
   },
 
   async getShopCategories(): Promise<ProductCategory[]> {
-    return request<ProductCategory[]>('/shop/categories/')
+    const data = await request<{ results?: ProductCategory[] } | ProductCategory[]>(
+      '/shop/categories/'
+    )
+    return extractResults(data)
   },
 
   async purchaseProduct(productId: number): Promise<Purchase> {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { HelpCircle, Server, CreditCard, Shield, MessageCircle, Gamepad2, Trophy, Users, AlertCircle } from 'lucide-react'
+import { HelpCircle, Server, CreditCard, Shield, MessageCircle, Trophy, Users, AlertCircle } from 'lucide-react'
 import { SiteShell } from '@/components/site-shell'
 import { SectionHeading } from '@/components/ui-bits'
 import { useSiteSettings } from '@/components/providers'
@@ -14,7 +14,7 @@ const ICON_MAP: Record<string, typeof Server> = {
   shield: Shield,
   message: MessageCircle,
   help: HelpCircle,
-  gamepad: Gamepad2,
+  gamepad: HelpCircle,
   trophy: Trophy,
   users: Users,
 }
