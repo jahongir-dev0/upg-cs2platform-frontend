@@ -1,0 +1,198 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-rajdhani), 'Rajdhani Fallback', sans-serif;
+  --font-sans: var(--font-inter), 'Inter Fallback', sans-serif;
+  --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card-hover: var(--card-hover);
+  --color-surface: var(--surface);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-dark: var(--primary-dark);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-online: var(--online);
+  --color-offline: var(--offline);
+  --color-warning: var(--warning);
+  --color-gold: var(--gold);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+  --background: #0a0a0f;
+  --foreground: #ffffff;
+  --card: #111118;
+  --card-foreground: #ffffff;
+  --card-hover: #16161f;
+  --surface: #1a1a24;
+  --popover: #111118;
+  --popover-foreground: #ffffff;
+  --primary: #e91e8c;
+  --primary-foreground: #ffffff;
+  --primary-dark: #c2185b;
+  --secondary: #1a1a24;
+  --secondary-foreground: #ffffff;
+  --muted: #16161f;
+  --muted-foreground: #8b8b9e;
+  --accent: #1a1a24;
+  --accent-foreground: #ffffff;
+  --destructive: #ff1744;
+  --border: rgba(233, 30, 140, 0.15);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #e91e8c;
+  --online: #00e676;
+  --offline: #ff1744;
+  --warning: #ff9800;
+  --gold: #ffd700;
+  --text-muted: #4a4a5a;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image: radial-gradient(
+      circle,
+      rgba(233, 30, 140, 0.04) 1px,
+      transparent 1px
+    );
+    background-size: 40px 40px;
+  }
+  html {
+    @apply font-sans;
+    color-scheme: dark;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    @apply font-heading;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .text-muted-deep {
+    color: var(--text-muted);
+  }
+  .divider-glow {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(233, 30, 140, 0.4),
+      transparent
+    );
+  }
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(233, 30, 140, 0.4);
+  }
+  .glow-primary-soft {
+    box-shadow: 0 0 20px rgba(233, 30, 140, 0.08);
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes grid-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 40px 40px;
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s infinite;
+}
+.animate-grid-drift {
+  animation: grid-drift 6s linear infinite;
+}
+.animate-skeleton {
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+.animate-modal-in {
+  animation: modal-in 0.2s ease-out;
+}
+.animate-toast-in {
+  animation: toast-in 0.25s ease-out;
+}
