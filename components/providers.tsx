@@ -11,7 +11,7 @@ import type { ReactNode } from 'react'
 import type { User } from '@/lib/types'
 import { api, tokenStore } from '@/lib/api'
 
-/* ---------------- Toasts ---------------- */
+/* ─── Toasts ─────────────────────────────────────────────────────────────── */
 
 type ToastType = 'success' | 'error' | 'info'
 interface Toast {
@@ -61,20 +61,14 @@ function ToastViewport({ toasts }: { toasts: Toast[] }) {
   )
 }
 
-/* ---------------- Auth ---------------- */
+/* ─── Auth Context ───────────────────────────────────────────────────────── */
 
 interface AuthContextValue {
   user: User | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (
-    username: string,
-    email: string,
-    password: string,
-    password2: string,
-  ) => Promise<void>
+  steamLogin: () => void
   logout: () => void
-  updateUser: (patch: Partial<User>) => void
+  setUser: (user: User | null) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -85,28 +79,12 @@ export function useAuth() {
   return ctx
 }
 
-/* ---------------- Modal control ---------------- */
-
-type ModalView = 'login' | 'register' | null
-interface ModalContextValue {
-  modal: ModalView
-  openModal: (view: Exclude<ModalView, null>) => void
-  closeModal: () => void
-}
-const ModalContext = createContext<ModalContextValue | null>(null)
-export function useAuthModal() {
-  const ctx = useContext(ModalContext)
-  if (!ctx) throw new Error('useAuthModal must be used within AppProviders')
-  return ctx
-}
-
-/* ---------------- Combined provider ---------------- */
+/* ─── Combined Provider ──────────────────────────────────────────────────── */
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState<ModalView>(null)
 
   const toast = useCallback((message: string, type: ToastType = 'info') => {
     const id = Date.now() + Math.random()
@@ -116,12 +94,13 @@ export function AppProviders({ children }: { children: ReactNode }) {
     }, 3500)
   }, [])
 
+  // Initialize: check if user has valid token
   useEffect(() => {
     let active = true
     async function init() {
       if (tokenStore.getAccess()) {
         try {
-          const profile = await api.getProfile()
+          const profile = await api.getMe()
           if (active) setUser(profile)
         } catch {
           tokenStore.clear()
@@ -135,53 +114,22 @@ export function AppProviders({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const data = await api.login(email, password)
-      setUser(data.user)
-      toast('Вы успешно вошли в аккаунт', 'success')
-    },
-    [toast],
-  )
+  const steamLogin = useCallback(() => {
+    // Steam OpenID ga redirect qiladi
+    window.location.href = api.getSteamLoginUrl()
+  }, [])
 
-  const register = useCallback(
-    async (
-      username: string,
-      email: string,
-      password: string,
-      password2: string,
-    ) => {
-      const data = await api.register(username, email, password, password2)
-      setUser(data.user)
-      toast('Аккаунт создан. Добро пожаловать!', 'success')
-    },
-    [toast],
-  )
-
-  const logout = useCallback(() => {
-    api.logout()
+  const logout = useCallback(async () => {
+    await api.logout()
     setUser(null)
-    toast('Вы вышли из аккаунта', 'info')
+    toast("Hisobdan muvaffaqiyatli chiqdingiz", 'info')
   }, [toast])
-
-  const updateUser = useCallback((patch: Partial<User>) => {
-    setUser((prev) => (prev ? { ...prev, ...patch } : prev))
-  }, [])
-
-  const openModal = useCallback((view: Exclude<ModalView, null>) => {
-    setModal(view)
-  }, [])
-  const closeModal = useCallback(() => setModal(null), [])
 
   return (
     <ToastContext.Provider value={{ toast }}>
-      <AuthContext.Provider
-        value={{ user, loading, login, register, logout, updateUser }}
-      >
-        <ModalContext.Provider value={{ modal, openModal, closeModal }}>
-          {children}
-          <ToastViewport toasts={toasts} />
-        </ModalContext.Provider>
+      <AuthContext.Provider value={{ user, loading, steamLogin, logout, setUser }}>
+        {children}
+        <ToastViewport toasts={toasts} />
       </AuthContext.Provider>
     </ToastContext.Provider>
   )

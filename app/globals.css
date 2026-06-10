@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -79,12 +78,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image: radial-gradient(
-      circle,
-      rgba(233, 30, 140, 0.04) 1px,
-      transparent 1px
-    );
-    background-size: 40px 40px;
+    background-image:
+      radial-gradient(circle, rgba(233, 30, 140, 0.03) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(233, 30, 140, 0.02) 0%, transparent 50%);
+    background-size: 40px 40px, 100% 100%;
   }
   html {
     @apply font-sans;
@@ -114,7 +111,9 @@
     );
   }
   .glow-primary {
-    box-shadow: 0 0 20px rgba(233, 30, 140, 0.4);
+    box-shadow:
+      0 0 20px rgba(233, 30, 140, 0.4),
+      0 0 40px rgba(233, 30, 140, 0.1);
   }
   .glow-primary-soft {
     box-shadow: 0 0 20px rgba(233, 30, 140, 0.08);
@@ -127,6 +126,8 @@
     display: none;
   }
 }
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
 
 @keyframes pulse-dot {
   0%,
@@ -181,6 +182,15 @@
   }
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
 .animate-pulse-dot {
   animation: pulse-dot 2s infinite;
 }
@@ -195,4 +205,7 @@
 }
 .animate-toast-in {
   animation: toast-in 0.25s ease-out;
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }

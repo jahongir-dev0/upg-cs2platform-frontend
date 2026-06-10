@@ -1,10 +1,6 @@
-import type {
-  GameServer,
-  LeaderboardEntry,
-  Order,
-  ServerMode,
-  User,
-} from './types'
+import type { GameServer, LeaderboardEntry, Order, User } from './types'
+
+/* ─── Maps ───────────────────────────────────────────────────────────────── */
 
 const MAPS = [
   'de_dust2',
@@ -19,60 +15,57 @@ const MAPS = [
   'aim_redline',
 ]
 
-const LOCATIONS = [
-  { name: 'Tashkent', flag: '🇺🇿' },
-  { name: 'Almaty', flag: '🇰🇿' },
-  { name: 'Moscow', flag: '🇷🇺' },
-  { name: 'Frankfurt', flag: '🇩🇪' },
+/* ─── Categories ─────────────────────────────────────────────────────────── */
+
+const CATEGORIES = [
+  { id: 1, name: '5X5', slug: 'competitive', icon: '⚔️', server_count: 6 },
+  { id: 2, name: 'DM', slug: 'deathmatch', icon: '💀', server_count: 4 },
+  { id: 3, name: 'RETAKE', slug: 'retake', icon: '🎯', server_count: 3 },
+  { id: 4, name: 'AWP', slug: 'awp', icon: '🔫', server_count: 2 },
+  { id: 5, name: 'SURF', slug: 'surf', icon: '🏄', server_count: 2 },
+  { id: 6, name: 'BHOP', slug: 'bhop', icon: '🐰', server_count: 2 },
+  { id: 7, name: 'KZ', slug: 'kz', icon: '🧗', server_count: 1 },
+  { id: 8, name: '2X2', slug: '2x2', icon: '👥', server_count: 2 },
+  { id: 9, name: 'ARENA', slug: 'arena', icon: '🏟️', server_count: 1 },
+  { id: 10, name: 'HNS', slug: 'hns', icon: '🏃', server_count: 1 },
 ]
 
-const MODES: ServerMode[] = [
-  '5X5',
-  'DM',
-  'RETAKE',
-  'BHOP',
-  'SURF',
-  'KZ',
-  'AWP',
-  '2X2',
-  'PISTOL',
-  'ARENA',
-  'HNS',
-  'DEATHRUN',
-]
+/* ─── Deterministic pseudo-random ────────────────────────────────────────── */
 
 function seeded(n: number) {
-  // deterministic pseudo-random so server/client render match
   const x = Math.sin(n * 99.13) * 10000
   return x - Math.floor(x)
 }
 
+/* ─── Mock Servers ───────────────────────────────────────────────────────── */
+
 export const MOCK_SERVERS: GameServer[] = Array.from({ length: 24 }, (_, i) => {
-  const mode = MODES[i % MODES.length]
-  const max = mode === '2X2' ? 4 : mode === '5X5' ? 10 : mode === 'RETAKE' ? 10 : 24
-  const online = seeded(i + 1) > 0.18
-  const players = online ? Math.floor(seeded(i + 3) * (max + 1)) : 0
-  const loc = LOCATIONS[i % LOCATIONS.length]
+  const cat = CATEGORIES[i % CATEGORIES.length]
+  const maxPlayers = cat.slug === '2x2' ? 4 : cat.slug === 'competitive' ? 10 : 24
+  const isOnline = seeded(i + 1) > 0.15
+  const currentPlayers = isOnline ? Math.floor(seeded(i + 3) * (maxPlayers + 1)) : 0
+  const status: GameServer['status'] = isOnline ? 'online' : 'offline'
+
   return {
     id: i + 1,
-    number: 200 + i,
-    name: mode,
-    mode,
-    map: MAPS[i % MAPS.length],
-    players,
-    maxPlayers: max,
-    status: online ? 'online' : 'offline',
-    ip: `185.${100 + (i % 50)}.${i % 255}.${10 + i}:2701${i % 10}`,
-    location: loc.name,
-    locationFlag: loc.flag,
-    ping: 8 + Math.floor(seeded(i + 7) * 35),
-    locked: seeded(i + 11) > 0.82,
-    premium: seeded(i + 13) > 0.78,
-    image: `/abstract-geometric-shapes.png?height=250&width=400&query=${encodeURIComponent(
-      'counter strike ' + MAPS[i % MAPS.length] + ' map screenshot dark',
-    )}`,
+    name: `${cat.name} #${200 + i}`,
+    description: `${cat.name} rejimidagi server`,
+    ip_address: `185.${100 + (i % 50)}.${i % 255}.${10 + i}`,
+    port: 27015 + (i % 10),
+    category: cat,
+    map_name: MAPS[i % MAPS.length],
+    max_players: maxPlayers,
+    current_players: currentPlayers,
+    status,
+    is_premium: seeded(i + 13) > 0.78,
+    price_per_hour: Math.round((1500 + seeded(i + 5) * 3500) / 100) * 100,
+    connect_url: `steam://connect/185.${100 + (i % 50)}.${i % 255}.${10 + i}:${27015 + (i % 10)}`,
+    player_percentage: maxPlayers > 0 ? Math.round((currentPlayers / maxPlayers) * 100) : 0,
+    created_at: '2024-06-01T12:00:00Z',
   }
 })
+
+/* ─── Mock Leaderboard ───────────────────────────────────────────────────── */
 
 const NAMES = [
   'xANTERIORx',
@@ -101,84 +94,89 @@ export const MOCK_LEADERBOARD: LeaderboardEntry[] = Array.from(
   { length: 50 },
   (_, i) => {
     const rating = Math.round((2600 - i * 38 - seeded(i) * 20) * 10) / 10
+    const kills = Math.max(13000 - i * 240 - Math.floor(seeded(i + 1) * 300), 200)
+    const deaths = Math.max(Math.floor(kills / (2.5 - i * 0.03 + seeded(i + 2) * 0.2)), 100)
     return {
-      rank: i + 1,
       username: i < NAMES.length ? NAMES[i] : `Player_${1000 + i}`,
-      avatar: `/diverse-gaming-avatars.png?height=40&width=40&query=${encodeURIComponent(
-        'gaming avatar neon ' + i,
-      )}`,
-      rating: Math.max(rating, 800),
-      kd: Math.round((2.5 - i * 0.03 + seeded(i + 2) * 0.2) * 100) / 100,
+      avatar: null,
+      steam_url: null,
+      is_premium: seeded(i + 7) > 0.7,
+      kills,
+      deaths,
+      assists: Math.floor(kills * 0.3),
       wins: Math.max(260 - i * 5 - Math.floor(seeded(i) * 10), 12),
-      kills: Math.max(13000 - i * 240 - Math.floor(seeded(i + 1) * 300), 200),
-      hours: Math.max(480 - i * 9, 14),
+      losses: Math.max(140 - i * 2, 20),
+      headshot_percentage: Math.round((40 + seeded(i + 4) * 25) * 10) / 10,
+      play_time_hours: Math.max(480 - i * 9, 14),
+      rating: Math.max(rating, 800),
+      kd_ratio: deaths > 0 ? Math.round((kills / deaths) * 100) / 100 : kills,
     }
   },
 )
+
+/* ─── Mock User ──────────────────────────────────────────────────────────── */
 
 export const MOCK_USER: User = {
   id: 1,
   username: 'Sardor_47',
   email: 'sardor@upg.uz',
-  avatar: `/single-gaming-avatar.jpg?height=120&width=120&query=esports player avatar neon pink`,
+  avatar: null,
+  steam_id: '76561198045120564',
+  steam_url: 'https://steamcommunity.com/id/sardor47/',
   balance: 125000,
-  premium: true,
-  steamId: 'STEAM_1:0:42857193',
-  joinDate: '2024-03-15',
-  stats: {
-    kd: 1.98,
-    wins: 198,
-    losses: 142,
-    hsPercent: 54,
-    playtime: 380,
-    rating: 2180,
-    kills: 10200,
-  },
+  is_premium: true,
+  created_at: '2024-03-15T10:00:00Z',
 }
+
+/* ─── Mock Orders ────────────────────────────────────────────────────────── */
 
 export const MOCK_ORDERS: Order[] = [
   {
     id: 1,
-    serverName: '5X5 #212',
-    mode: '5X5',
-    hours: 24,
-    price: 48000,
-    date: '2025-05-28',
+    server: MOCK_SERVERS[0],
     status: 'active',
+    status_display: 'Faol',
+    hours: 24,
+    total_price: 48000,
+    started_at: '2025-05-28T10:00:00Z',
+    expires_at: '2025-05-29T10:00:00Z',
+    created_at: '2025-05-28T10:00:00Z',
+    is_expired: false,
   },
   {
     id: 2,
-    serverName: 'RETAKE #207',
-    mode: 'RETAKE',
-    hours: 12,
-    price: 18000,
-    date: '2025-05-20',
+    server: MOCK_SERVERS[2],
     status: 'active',
+    status_display: 'Faol',
+    hours: 12,
+    total_price: 18000,
+    started_at: '2025-05-20T14:00:00Z',
+    expires_at: '2025-05-21T02:00:00Z',
+    created_at: '2025-05-20T14:00:00Z',
+    is_expired: false,
   },
   {
     id: 3,
-    serverName: 'AWP #214',
-    mode: 'AWP',
-    hours: 6,
-    price: 9000,
-    date: '2025-04-30',
+    server: MOCK_SERVERS[6],
     status: 'expired',
+    status_display: 'Muddati tugagan',
+    hours: 6,
+    total_price: 9000,
+    started_at: '2025-04-30T08:00:00Z',
+    expires_at: '2025-04-30T14:00:00Z',
+    created_at: '2025-04-30T08:00:00Z',
+    is_expired: true,
   },
   {
     id: 4,
-    serverName: 'DM #201',
-    mode: 'DM',
-    hours: 48,
-    price: 72000,
-    date: '2025-04-12',
+    server: MOCK_SERVERS[1],
     status: 'expired',
+    status_display: 'Muddati tugagan',
+    hours: 48,
+    total_price: 72000,
+    started_at: '2025-04-12T06:00:00Z',
+    expires_at: '2025-04-14T06:00:00Z',
+    created_at: '2025-04-12T06:00:00Z',
+    is_expired: true,
   },
 ]
-
-export const MODE_TABS: { label: string; count: number }[] = MODES.map(
-  (m) => ({
-    label: m,
-    count: MOCK_SERVERS.filter((s) => s.mode === m && s.status === 'online')
-      .length,
-  }),
-)
