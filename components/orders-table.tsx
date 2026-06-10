@@ -6,7 +6,29 @@ import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 function formatPrice(n: number) {
-  return new Intl.NumberFormat('ru-RU').format(n)
+  return new Intl.NumberFormat('uz-UZ').format(n)
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('uz-UZ', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Kutilmoqda',
+  active: 'Faol',
+  expired: 'Muddati tugagan',
+  cancelled: 'Bekor qilingan',
+}
+
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  pending: { bg: 'rgba(255,152,0,0.12)', text: 'var(--warning)' },
+  active: { bg: 'rgba(0,230,118,0.12)', text: 'var(--online)' },
+  expired: { bg: 'rgba(255,23,68,0.12)', text: 'var(--offline)' },
+  cancelled: { bg: 'rgba(139,139,158,0.12)', text: 'var(--muted-foreground)' },
 }
 
 interface OrdersTableProps {
@@ -49,7 +71,7 @@ export function OrdersTable({ orders: ordersProp, loading: loadingProp }: Orders
   if (rows.length === 0) {
     return (
       <div className="rounded-lg border border-border-subtle bg-card py-12 text-center text-muted-foreground">
-        У вас пока нет заказов
+        Sizda hali buyurtmalar yo&apos;q
       </div>
     )
   }
@@ -60,43 +82,42 @@ export function OrdersTable({ orders: ordersProp, loading: loadingProp }: Orders
         <table className="w-full min-w-[560px] text-sm">
           <thead>
             <tr className="border-b border-border-subtle bg-surface text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <th className="px-4 py-3 font-medium">Сервер</th>
-              <th className="px-4 py-3 font-medium">Часы</th>
-              <th className="px-4 py-3 text-right font-medium">Цена</th>
-              <th className="px-4 py-3 font-medium">Дата</th>
-              <th className="px-4 py-3 text-right font-medium">Статус</th>
+              <th className="px-4 py-3 font-medium">Server</th>
+              <th className="px-4 py-3 font-medium">Soatlar</th>
+              <th className="px-4 py-3 text-right font-medium">Narx</th>
+              <th className="px-4 py-3 font-medium">Sana</th>
+              <th className="px-4 py-3 text-right font-medium">Holat</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((o) => (
-              <tr
-                key={o.id}
-                className="border-b border-border-subtle transition-colors last:border-0 hover:bg-primary/5"
-              >
-                <td className="px-4 py-3 font-medium text-foreground">{o.serverName}</td>
-                <td className="px-4 py-3 text-muted-foreground">{o.hours}ч</td>
-                <td className="px-4 py-3 text-right text-foreground">{formatPrice(o.price)} UZS</td>
-                <td className="px-4 py-3 text-muted-foreground">{o.date}</td>
-                <td className="px-4 py-3 text-right">
-                  <span
-                    className={cn(
-                      'rounded-full px-2.5 py-1 text-xs font-semibold',
-                      o.status === 'active'
-                        ? 'bg-online/15 text-online'
-                        : 'bg-offline/15 text-offline',
-                    )}
-                    style={{
-                      background:
-                        o.status === 'active'
-                          ? 'rgba(0,230,118,0.12)'
-                          : 'rgba(255,23,68,0.12)',
-                    }}
-                  >
-                    {o.status === 'active' ? 'Активен' : 'Истёк'}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {rows.map((o) => {
+              const colors = STATUS_COLORS[o.status] || STATUS_COLORS.expired
+              return (
+                <tr
+                  key={o.id}
+                  className="border-b border-border-subtle transition-colors last:border-0 hover:bg-primary/5"
+                >
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    {o.server.name}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{o.hours} soat</td>
+                  <td className="px-4 py-3 text-right text-foreground">
+                    {formatPrice(o.total_price)} UZS
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {formatDate(o.created_at)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span
+                      className="rounded-full px-2.5 py-1 text-xs font-semibold"
+                      style={{ background: colors.bg, color: colors.text }}
+                    >
+                      {STATUS_LABELS[o.status] || o.status_display}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

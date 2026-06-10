@@ -1,6 +1,5 @@
 'use client'
 
-import { Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface ModeTab {
@@ -19,10 +18,6 @@ export function ModeTabs({
 }) {
   return (
     <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-      <button className="flex shrink-0 items-center gap-1.5 rounded-lg border border-dashed border-primary/50 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10">
-        <Plus className="h-4 w-4" />
-        СОЗДАТЬ ЛОББИ
-      </button>
       <button
         onClick={() => onChange('all')}
         className={cn(
@@ -32,7 +27,7 @@ export function ModeTabs({
             : 'border border-border-subtle text-muted-foreground hover:border-primary/40 hover:text-foreground',
         )}
       >
-        ВСЕ
+        BARCHASI
       </button>
       {tabs.map((tab) => {
         const isActive = active === tab.label

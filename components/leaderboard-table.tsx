@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import { useAuth } from './providers'
 import { cn } from '@/lib/utils'
 
-const PERIODS = ['СЕГОДНЯ', 'НЕДЕЛЯ', 'МЕСЯЦ', 'ВСЕ ВРЕМЯ']
+const PERIODS = ['BUGUN', 'HAFTA', 'OY', 'BARCHA VAQT']
 
 const MEDAL: Record<number, string> = {
   1: 'var(--gold)',
@@ -60,12 +60,12 @@ export function LeaderboardTable() {
             <thead>
               <tr className="border-b border-border-subtle bg-surface text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3 font-medium">#</th>
-                <th className="px-4 py-3 font-medium">Игрок</th>
-                <th className="px-4 py-3 text-right font-medium">Рейтинг</th>
-                <th className="px-4 py-3 text-right font-medium">К/Д</th>
-                <th className="px-4 py-3 text-right font-medium">Побед</th>
-                <th className="px-4 py-3 text-right font-medium">Убийств</th>
-                <th className="px-4 py-3 text-right font-medium">Время</th>
+                <th className="px-4 py-3 font-medium">O&apos;yinchi</th>
+                <th className="px-4 py-3 text-right font-medium">Reyting</th>
+                <th className="px-4 py-3 text-right font-medium">K/D</th>
+                <th className="px-4 py-3 text-right font-medium">G&apos;alabalar</th>
+                <th className="px-4 py-3 text-right font-medium">O&apos;ldirish</th>
+                <th className="px-4 py-3 text-right font-medium">Vaqt</th>
               </tr>
             </thead>
             <tbody>
@@ -77,11 +77,12 @@ export function LeaderboardTable() {
                       </td>
                     </tr>
                   ))
-                : rows.map((row) => {
+                : rows.map((row, index) => {
+                    const rank = index + 1
                     const isOwn = user?.username === row.username
                     return (
                       <tr
-                        key={row.rank}
+                        key={rank}
                         className={cn(
                           'border-b border-border-subtle transition-colors hover:bg-primary/5',
                           isOwn && 'bg-primary/5 ring-1 ring-inset ring-primary/30',
@@ -89,51 +90,54 @@ export function LeaderboardTable() {
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5">
-                            {row.rank <= 3 ? (
+                            {rank <= 3 ? (
                               <Crown
                                 className="h-4 w-4"
-                                style={{ color: MEDAL[row.rank] }}
+                                style={{ color: MEDAL[rank] }}
                               />
                             ) : null}
                             <span
                               className={cn(
                                 'font-mono',
-                                row.rank <= 3
+                                rank <= 3
                                   ? 'font-bold'
                                   : 'text-muted-foreground',
                               )}
                             >
-                              {row.rank}
+                              {rank}
                             </span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             <img
-                              src={row.avatar || '/placeholder.svg'}
+                              src={row.avatar || '/placeholder-user.jpg'}
                               alt={row.username}
                               className="h-7 w-7 rounded-full object-cover ring-1 ring-border"
                             />
                             <span className="font-medium">{row.username}</span>
+                            {row.is_premium && (
+                              <Crown className="h-3 w-3" style={{ color: 'var(--gold)' }} />
+                            )}
                             {isOwn && (
                               <span className="rounded bg-primary/20 px-1.5 text-[10px] font-bold text-primary">
-                                ВЫ
+                                SIZ
                               </span>
                             )}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right font-semibold text-primary">
-                          {row.rating.toLocaleString('ru-RU')}
+                          {row.rating.toLocaleString('uz-UZ')}
                         </td>
-                        <td className="px-4 py-3 text-right">{row.kd.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right">{row.kd_ratio.toFixed(2)}</td>
                         <td className="px-4 py-3 text-right text-muted-foreground">
                           {row.wins}
                         </td>
                         <td className="px-4 py-3 text-right text-muted-foreground">
-                          {row.kills.toLocaleString('ru-RU')}
+                          {row.kills.toLocaleString('uz-UZ')}
                         </td>
                         <td className="px-4 py-3 text-right text-muted-foreground">
-                          {row.hours}ч
+                          {Math.round(row.play_time_hours)}s
                         </td>
                       </tr>
                     )

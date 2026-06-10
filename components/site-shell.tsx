@@ -1,6 +1,5 @@
 import { Header } from './header'
 import { Footer } from './footer'
-import { AuthModals } from './auth-modals'
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   return (
@@ -8,7 +7,6 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
-      <AuthModals />
     </div>
   )
 }

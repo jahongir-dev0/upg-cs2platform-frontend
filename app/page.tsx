@@ -9,9 +9,9 @@ export default function HomePage() {
       <Hero />
       <div id="servers" className="mx-auto max-w-7xl px-4 py-12">
         <div className="mb-6 flex flex-col gap-2">
-          <SectionHeading>Игровые серверы</SectionHeading>
+          <SectionHeading>O&apos;yin serverlari</SectionHeading>
           <p className="pl-5 text-sm text-muted-foreground">
-            Выберите режим и подключайтесь в один клик
+            Rejimni tanlang va bir bosishda ulaning
           </p>
         </div>
         <ServerBrowser />

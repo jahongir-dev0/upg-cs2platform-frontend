@@ -1,4 +1,3 @@
-import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
 import { Inter, Rajdhani, Geist_Mono } from 'next/font/google'
 import './globals.css'
@@ -19,14 +18,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'UPG — CS2 платформа Узбекистана',
+  title: "UPG — O'zbekiston CS2 Platformasi",
   description:
-    'UPGrade — лучшая CS2 платформа для игроков Узбекистана. Игровые серверы, лидерборд, режимы и матчи.',
-  generator: 'v0.app',
-}
-
-export const viewport = {
-  themeColor: '#0a0a0f',
+    "UPGrade — O'zbekiston o'yinchilari uchun eng yaxshi CS2 platformasi. O'yin serverlari, liderlar jadvali, rejimlar va o'yinlar.",
 }
 
 export default function RootLayout({
@@ -36,12 +30,11 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="ru"
+      lang="uz"
       className={`dark ${inter.variable} ${rajdhani.variable} ${geistMono.variable} bg-background`}
     >
       <body className="font-sans antialiased">
         <AppProviders>{children}</AppProviders>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )
