@@ -44,6 +44,7 @@ export function ServerBrowser({ showTabs = true }: { showTabs?: boolean }) {
   }, [])
 
   const tabs = useMemo(() => {
+    if (!Array.isArray(categories)) return []
     return categories.map((cat: ServerCategory) => ({
       label: cat.name,
       count: cat.server_count,

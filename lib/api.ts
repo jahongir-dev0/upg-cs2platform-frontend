@@ -207,7 +207,10 @@ export const api = {
   },
 
   async getServerCategories(): Promise<ServerCategory[]> {
-    return request<ServerCategory[]>('/servers/categories/')
+    const data = await request<{ results?: ServerCategory[] } | ServerCategory[]>(
+      '/servers/categories/'
+    )
+    return extractResults(data)
   },
 
   async getServerStats(): Promise<ServerStats> {
